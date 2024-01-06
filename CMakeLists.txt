@@ -99,6 +99,7 @@ if(MSVC)
     string(REGEX REPLACE "  " " " CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 endif()
 
+# https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#output-artifacts
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .exe for executable
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .lib for linker
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .dll for runtime load library
@@ -106,14 +107,16 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .dll for runtime l
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
 
-# Add phnt headers
 if(WIN32)
+    # Add phnt headers
     # Do not use FetchContent, a bad internet connection will occasionally fail
+    # Even with FETCHCONTENT_UPDATES_DISCONNECTED ON, it is still clunky at best
+    # Failed FetchContent will still leave an empty directory, so cannot check if directory exists either
     if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phnt)
         find_package(Git QUIET)
         if(GIT_FOUND)
             message(STATUS "Fetching phnt headers")
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone https://github.com/winsiderss/phnt.git --single-branch
+            execute_process(COMMAND ${GIT_EXECUTABLE} clone https://github.com/winsiderss/phnt.git --single-branch --branch master
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
                 ERROR_QUIET
             )
@@ -124,22 +127,39 @@ if(WIN32)
         message(FATAL_ERROR "Failed to fetch phnt headers!")
     endif()
 
-    include_directories(phnt)
+    # Here is a working FetchContent example which is not any shorter
+    # include(FetchContent)
+    # FetchContent_Declare(
+    #     phnt_headers
+    #     GIT_REPOSITORY  https://github.com/winsiderss/phnt.git
+    #     GIT_TAG         master
+    #     SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/phnt
+    # )
+    # file(GLOB DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/phnt/*)
+    # list(LENGTH DIR_LIST DIR_LEN)
+    # if(DIR_LEN EQUAL 0)
+    #     if(EXISTS ${CMAKE_BINARY_DIR}/_deps/)
+    #         file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/_deps/)
+    #     endif()
+    #     FetchContent_MakeAvailable(phnt_headers)
+    # endif()
 
     # Link to Nt libraries
     # Cannot use find_library
     # Windows SDK will not be added to PATH if LLVM/Clang was set as compiler without calling vcvarsall.bat
     link_libraries(ntdll)
-endif()
 
-# Library
-if(WIN32)
+    # Library
     add_library(libcomfork STATIC comfork.cpp)
     set_target_properties(libcomfork PROPERTIES PREFIX "")  # Avoid extra 'lib' prefix
-    target_include_directories(libcomfork PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_include_directories(libcomfork
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/phnt
+    )
+    # target_link_libraries with phnt wasn't used because CMake failed to inherit phnt target's INCLUDE_DIRECTORIES
 else()
     add_library(libcomfork INTERFACE)
-    target_include_directories(libcomfork INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_include_directories(libcomfork INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
 # Executable - PROJECT_IS_TOP_LEVEL
