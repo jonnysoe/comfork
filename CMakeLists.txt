@@ -108,7 +108,6 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(WIN32)
     # Add phnt headers
-    # Do not use FetchContent, a bad internet connection will occasionally fail even if its already available
     include(FetchContent)
     FetchContent_Declare(
         phnt_headers
@@ -116,12 +115,16 @@ if(WIN32)
         GIT_TAG         master
         SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/phnt
     )
-    # Hack to only download once
-    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
-    FetchContent_MakeAvailable(phnt_headers)
-
-    if(NOT EXISTS ${phnt_headers_SOURCE_DIR})
-        message(FATAL_ERROR "Failed to fetch phnt headers!")
+    # Hack to download once, project can be reconfigured offline
+    # Don't use FETCHCONTENT_UPDATES_DISCONNECTED ON, because it is clunky at best
+    # Failed FetchContent will still leave an empty directory, so cannot check if directory exists either
+    file(GLOB DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/phnt/*)
+    list(LENGTH DIR_LIST DIR_LEN)
+    if(DIR_LEN EQUAL 0)
+        if(EXISTS ${CMAKE_BINARY_DIR}/_deps/)
+            file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/_deps/)
+        endif()
+        FetchContent_MakeAvailable(phnt_headers)
     endif()
 
     # Link to Nt libraries
@@ -134,7 +137,7 @@ if(WIN32)
     set_target_properties(libcomfork PROPERTIES PREFIX "")  # Avoid extra 'lib' prefix
     target_include_directories(libcomfork
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-        PRIVATE ${phnt_headers_SOURCE_DIR}
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/phnt
     )
     # target_link_libraries with phnt wasn't used because CMake failed to inherit phnt target's INCLUDE_DIRECTORIES
 else()
