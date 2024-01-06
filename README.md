@@ -5,10 +5,10 @@ A simple `fork` and `wait` header and library for Windows to be compatible with 
 ## Background
 There is not much libraries available for Windows to use `fork` and `wait`, this is one of the key missing features when porting UNIX-based FOSS codes into Windows, especially when developing on a pure Windows platform without UNIX-compatibility environments like `WSL`, `MSYS2` or `Cygwin`.
 
-While threads as lightweight processes have been widely available and is the preferred approach for multi-tasking, `fork` and `wait` functions still have their values when it comes to performing tasks that may kill the main process - there are libraries that actually calls `_exit` on a spawned thread, the parent process will be exit as well.
+While threads as lightweight processes have been widely available and is the preferred approach for multi-tasking, `fork` and `wait` functions still have their values when it comes to performing tasks that may kill the main process - there are libraries that actually calls `_exit` on a spawned thread, the parent process will exit as well!
 
 ## Description
-This library is meant emulate the basic capabilities of `fork` and `wait`, so that it can be a drop-in header and library replacement for code bases that use these functions without being overly intrusive.
+This library is meant to emulate the basic capabilities of `fork` and `wait`, so that it can be a drop-in header and library replacement for code bases that use these functions without being overly intrusive.
 
 What is available right now is barebone minimal as `waitpid` only supports `0` and `>0` pids, `-1` and `<-1` range were supposed to target the process group that belongs to the specified pid where process group is not supported - they're behaving like `0` and `>0` respectively. The only `option` supported at the moment is `WNOHANG`.
 
@@ -19,13 +19,14 @@ Check out the [wait manpage](https://manpages.ubuntu.com/manpages/jammy/en/man2/
 ### Requirements
 - [Git](https://git-scm.com/downloads)
 - [CMake](https://cmake.org/download/)
-- [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/)
 - C/C++ compiler (tested on [MSVC](https://visualstudio.microsoft.com/visual-cpp-build-tools/) and [LLVM/Clang](https://releases.llvm.org/download.html))
 
 Optional:
 - [Visual Studio Code](https://code.visualstudio.com/download)
 - [Ninja](https://ninja-build.org/)
 - [CCache](https://ccache.dev/download.html)
+- [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/) (Comes pre-installed when installing `MSVC`, `LLVM/Clang` will need this installed separately)
+- [ms-vscode.cmake-tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) vscode extension
 
 ### OS Compatibility
 - Windows 10 x64 (technically Windows Vista) and above, because it uses `NtCreateUserProcess`.
@@ -36,7 +37,7 @@ NOTE: Linux and Mac OS are not included as they're just a wrapper, this code sho
 #### Demo
 When building as a standalone program to test the waters, there will be a few targets available to showcase how `fork` and `waitpid` works.
 
-Either hit `F5` in vscode, or issue the following commands in the project directory to try out the programs:
+Either hit `F5` in vscode after configuring a launch target in CMake Tools, or issue the following commands in the project directory to try out the programs:
 ```
 cmake -S . -B build -G "Visual Studio 17 2022" -A x64 && cmake --build build
 bin\main_c
@@ -48,8 +49,9 @@ bin\main_nowait_cpp
 #### Module
 This library can be added into any code base as a module, its easier if the code base uses modern build tools, eg. CMake, Bazel, Meson, etc.; basically those that support interoperability with CMake.
 
-The easiest approach to use [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html#typical-case)
+The easiest approach to use [FetchContent](https://cmake.org/cmake/help/latest/module/FetchContent.html#typical-case) in a CMake project:
 ```
+include(FetchContent)
 FetchContent_Declare(
     comfork
     GIT_REPOSITORY https://github.com/jonnysoe/comfork.git

@@ -106,40 +106,40 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .dll for runtime l
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
 
-# Add phnt headers
 if(WIN32)
-    # Do not use FetchContent, a bad internet connection will occasionally fail
-    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phnt)
-        find_package(Git QUIET)
-        if(GIT_FOUND)
-            message(STATUS "Fetching phnt headers")
-            execute_process(COMMAND ${GIT_EXECUTABLE} clone https://github.com/winsiderss/phnt.git --single-branch
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                ERROR_QUIET
-            )
-        endif()
-    endif()
+    # Add phnt headers
+    # Do not use FetchContent, a bad internet connection will occasionally fail even if its already available
+    include(FetchContent)
+    FetchContent_Declare(
+        phnt_headers
+        GIT_REPOSITORY  https://github.com/winsiderss/phnt.git
+        GIT_TAG         master
+        SOURCE_DR       ${CMAKE_CURRENT_SOURCE_DIR}/phnt
+    )
+    # Hack to only download once
+    set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
+    FetchContent_MakeAvailable(phnt_headers)
 
-    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phnt)
+    if(NOT EXISTS ${phnt_headers_SOURCE_DIR})
         message(FATAL_ERROR "Failed to fetch phnt headers!")
     endif()
-
-    include_directories(phnt)
 
     # Link to Nt libraries
     # Cannot use find_library
     # Windows SDK will not be added to PATH if LLVM/Clang was set as compiler without calling vcvarsall.bat
     link_libraries(ntdll)
-endif()
 
-# Library
-if(WIN32)
+    # Library
     add_library(libcomfork STATIC comfork.cpp)
     set_target_properties(libcomfork PROPERTIES PREFIX "")  # Avoid extra 'lib' prefix
-    target_include_directories(libcomfork PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_include_directories(libcomfork
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+        PRIVATE ${phnt_headers_SOURCE_DIR}
+    )
+    # target_link_libraries with phnt wasn't used because CMake failed to inherit phnt target's INCLUDE_DIRECTORIES
 else()
     add_library(libcomfork INTERFACE)
-    target_include_directories(libcomfork INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/)
+    target_include_directories(libcomfork INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
 # Executable - PROJECT_IS_TOP_LEVEL
