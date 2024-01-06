@@ -114,7 +114,7 @@ if(WIN32)
         phnt_headers
         GIT_REPOSITORY  https://github.com/winsiderss/phnt.git
         GIT_TAG         master
-        SOURCE_DR       ${CMAKE_CURRENT_SOURCE_DIR}/phnt
+        SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/phnt
     )
     # Hack to only download once
     set(FETCHCONTENT_UPDATES_DISCONNECTED ON)
