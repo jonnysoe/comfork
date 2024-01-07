@@ -99,6 +99,7 @@ if(MSVC)
     string(REGEX REPLACE "  " " " CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 endif()
 
+# https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#output-artifacts
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .exe for executable
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .lib for linker
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .dll for runtime load library
@@ -108,24 +109,40 @@ set(CMAKE_CXX_STANDARD 17)
 
 if(WIN32)
     # Add phnt headers
-    include(FetchContent)
-    FetchContent_Declare(
-        phnt_headers
-        GIT_REPOSITORY  https://github.com/winsiderss/phnt.git
-        GIT_TAG         master
-        SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/phnt
-    )
-    # Hack to download once, project can be reconfigured offline
-    # Don't use FETCHCONTENT_UPDATES_DISCONNECTED ON, because it is clunky at best
+    # Do not use FetchContent, a bad internet connection will occasionally fail
+    # Even with FETCHCONTENT_UPDATES_DISCONNECTED ON, it is still clunky at best
     # Failed FetchContent will still leave an empty directory, so cannot check if directory exists either
-    file(GLOB DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/phnt/*)
-    list(LENGTH DIR_LIST DIR_LEN)
-    if(DIR_LEN EQUAL 0)
-        if(EXISTS ${CMAKE_BINARY_DIR}/_deps/)
-            file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/_deps/)
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phnt)
+        find_package(Git QUIET)
+        if(GIT_FOUND)
+            message(STATUS "Fetching phnt headers")
+            execute_process(COMMAND ${GIT_EXECUTABLE} clone https://github.com/winsiderss/phnt.git --single-branch --branch master
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                ERROR_QUIET
+            )
         endif()
-        FetchContent_MakeAvailable(phnt_headers)
     endif()
+
+    if(NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/phnt)
+        message(FATAL_ERROR "Failed to fetch phnt headers!")
+    endif()
+
+    # Here is a working FetchContent example which is not any shorter
+    # include(FetchContent)
+    # FetchContent_Declare(
+    #     phnt_headers
+    #     GIT_REPOSITORY  https://github.com/winsiderss/phnt.git
+    #     GIT_TAG         master
+    #     SOURCE_DIR      ${CMAKE_CURRENT_SOURCE_DIR}/phnt
+    # )
+    # file(GLOB DIR_LIST ${CMAKE_CURRENT_SOURCE_DIR}/phnt/*)
+    # list(LENGTH DIR_LIST DIR_LEN)
+    # if(DIR_LEN EQUAL 0)
+    #     if(EXISTS ${CMAKE_BINARY_DIR}/_deps/)
+    #         file(REMOVE_RECURSE ${CMAKE_BINARY_DIR}/_deps/)
+    #     endif()
+    #     FetchContent_MakeAvailable(phnt_headers)
+    # endif()
 
     # Link to Nt libraries
     # Cannot use find_library
