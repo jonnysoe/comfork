@@ -16,8 +16,8 @@ typedef int pid_t;
     #define WIFEXITED(status)   (((status) & 0xFF) == 0)
 
     // Some Windows have issues with using exit and _exit, replace them with proper Nt API
-    #define exit(status)        (ntexit((status)))
-    #define _exit(status)       (ntexit((status)))
+    #define exit(status)        (ntExit((status)))
+    #define _exit(status)       (ntExit((status)))
 
     #ifdef __cplusplus
 extern "C" {
@@ -25,7 +25,7 @@ extern "C" {
     pid_t waitpid(pid_t pid, int* status, int options);
     pid_t wait(int* status);
     pid_t fork();
-    void ntexit(int status);
+    void ntExit(int status);
     #ifdef __cplusplus
 }
     #endif

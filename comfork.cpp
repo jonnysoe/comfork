@@ -14,7 +14,19 @@ std::unordered_map<pid_t, std::pair<HANDLE, HANDLE>> handles;
 LARGE_INTEGER instant = {0};
 LARGE_INTEGER polling = {50};
 
-pid_t waitsinglepid(pid_t pid, int& status, LARGE_INTEGER* timeout) {
+bool exitRegistered = false;
+
+void closeHandles() {
+    // If parent process finishes before child process without calling wait/waitpid,
+    // close the handles to all child processes so they don't linger around after they're done.
+    // https://devblogs.microsoft.com/oldnewthing/20040723-00/?p=38363
+    for (const auto& handle : handles) {
+        NtClose(handle.second.first);   // hProcess
+        NtClose(handle.second.second);  // hThread
+    }
+}
+
+pid_t waitSinglePid(pid_t pid, int& status, LARGE_INTEGER* timeout) {
     HANDLE hProcess = handles[pid].first;
     HANDLE hThread = handles[pid].second;
 
@@ -31,6 +43,7 @@ pid_t waitsinglepid(pid_t pid, int& status, LARGE_INTEGER* timeout) {
     DWORD exitCode;
     GetExitCodeProcess(hProcess, &exitCode);
 
+    // Close handles
     NtClose(hProcess);
     NtClose(hThread);
     handles.erase(pid);
@@ -49,7 +62,7 @@ pid_t waitsinglepid(pid_t pid, int& status, LARGE_INTEGER* timeout) {
 
 pid_t waitpid(pid_t pid, int* status, int options) {
     auto timeout = !!(options & WNOHANG) ? &instant : nullptr;
-    int dummy = 0;
+    static int dummy = 0;
     if (status == nullptr) {
         status = &dummy;
     }
@@ -65,9 +78,9 @@ pid_t waitpid(pid_t pid, int* status, int options) {
             // PID is not a child of the current process
             err = ECHILD;
         } else {
-            ret = waitsinglepid(pid, *status, timeout);
+            ret = waitSinglePid(pid, *status, timeout);
         }
-    } else if (pid >= -1) {
+    } else {
         // any child, there is no distinction between Process group and non-process group for now
         bool const blocking = (timeout == nullptr) && !handles.empty();
         if (blocking) {
@@ -77,7 +90,7 @@ pid_t waitpid(pid_t pid, int* status, int options) {
         }
         do {
             for (const auto& handle : handles) {
-                ret = waitsinglepid(handle.first, *status, timeout);
+                ret = waitSinglePid(handle.first, *status, timeout);
                 if (ret != 0) {
                     break;
                 }
@@ -143,11 +156,17 @@ pid_t fork() {
         pid = GetProcessId(hProcess);
 
         handles[pid] = { hProcess, hThread };
+
+        if (!exitRegistered) {
+            exitRegistered = true;
+            atexit(closeHandles);
+        }
     }
 
     return pid;
 }
 
-void ntexit(int status) {
+void ntExit(int status) {
+    closeHandles();
     NtTerminateProcess(NtCurrentProcess(), status);
 }
