@@ -98,11 +98,9 @@ if(MSVC)
     string(REGEX REPLACE "/W[3|4]" "" CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
     string(REGEX REPLACE "  " " " CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
 
-    # Disable MSVC's ILK incremental build when using ccache
-    # https://stackoverflow.com/a/21569552
-    if(CCACHE_PROGRAM)
-        set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /INCREMENTAL:NO")
-    endif()
+    # Disable MSVC's ILK incremental build on Reelase
+    # https://devblogs.microsoft.com/cppblog/the-visual-c-linker-best-practices-developer-iteration/
+    add_link_options($<$<CONFIG:Release>:/INCREMENTAL:NO>)
 endif()
 
 # https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#output-artifacts
