@@ -128,6 +128,10 @@ pid_t fork() {
         // Re-attach to the parent's console to be able to write to it
         FreeConsole();
         AttachConsole(ATTACH_PARENT_PROCESS);
+
+        // Newer child process should not have access to older sibling processes of the same parent process,
+        // so that they don't wait for the wrong processes.
+        handles.clear();
     } else {
         // Executing inside the original (parent) process...
 
