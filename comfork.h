@@ -15,12 +15,17 @@ typedef int pid_t;
     #define WSTOPSIG(stat)      ((status) & 0x7F)
     #define WIFEXITED(status)   (((status) & 0xFF) == 0)
 
+    // Some Windows have issues with using exit and _exit, replace them with proper Nt API
+    #define exit(status)        (ntexit((status)))
+    #define _exit(status)       (ntexit((status)))
+
     #ifdef __cplusplus
 extern "C" {
     #endif
     pid_t waitpid(pid_t pid, int* status, int options);
     pid_t wait(int* status);
     pid_t fork();
+    void ntexit(int status);
     #ifdef __cplusplus
 }
     #endif

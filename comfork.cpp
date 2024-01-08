@@ -147,3 +147,7 @@ pid_t fork() {
 
     return pid;
 }
+
+void ntexit(int status) {
+    NtTerminateProcess(NtCurrentProcess(), status);
+}
