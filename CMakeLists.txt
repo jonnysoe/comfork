@@ -100,9 +100,11 @@ if(MSVC)
 endif()
 
 # https://cmake.org/cmake/help/latest/manual/cmake-buildsystem.7.html#output-artifacts
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .exe for executable
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .lib for linker
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .dll for runtime load library
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .exe/.dll for executable
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # shared library, .dll (Windows) files are not affected
+# Archives are not required in the final output
+# set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin) # .lib for linker
+set(CMAKE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}) # .pdb for debugging
 
 # Use C++17
 set(CMAKE_CXX_STANDARD 17)
